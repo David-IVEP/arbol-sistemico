@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Árbol Sistémico — Análisis y Sanación</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1410;
+  --parch: #f5f0e8;
+  --parch2: #ede5d5;
+  --parch3: #e5dcc8;
+  --terra: #8b4a2f;
+  --terra-l: #c07a52;
+  --sage: #4a6e5a;
+  --gold: #a8780a;
+  --red: #a32d2d;
+  --shadow: rgba(26,20,16,0.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--parch);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.65}
+
+/* ── HEADER ── */
+header{padding:3rem 2rem 2rem;text-align:center;border-bottom:1px solid rgba(26,20,16,0.1)}
+header h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,5vw,3rem);font-weight:300;letter-spacing:.02em}
+header h1 em{font-style:italic;color:var(--terra)}
+header p{margin-top:.6rem;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(26,20,16,.45)}
+.header-rule{width:50px;height:2px;background:var(--terra);margin:1.2rem auto 0}
+
+/* ── LAYOUT ── */
+.wrap{max-width:880px;margin:0 auto;padding:2rem 1.5rem}
+
+/* ── STEPS ── */
+.steps{display:flex;border:1px solid rgba(26,20,16,.12);border-radius:5px;overflow:hidden;margin-bottom:2rem}
+.step{flex:1;padding:.65rem .5rem;text-align:center;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;background:#fff;color:rgba(26,20,16,.4);cursor:pointer;border-right:1px solid rgba(26,20,16,.08);transition:all .2s}
+.step:last-child{border-right:none}
+.step.active{background:var(--terra);color:#fff;font-weight:500}
+.step.done{background:var(--parch2);color:var(--terra)}
+
+/* ── SECTION ── */
+.sec{display:none}.sec.active{display:block}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:1.55rem;font-weight:400;margin-bottom:.3rem}
+.sec-sub{color:rgba(26,20,16,.5);font-size:.83rem;margin-bottom:1.8rem}
+
+/* ── NOTE BOX ── */
+.note{background:rgba(74,110,90,.08);border:1px solid rgba(74,110,90,.2);border-radius:4px;padding:.8rem 1rem;font-size:.82rem;color:var(--sage);margin-bottom:1.8rem;line-height:1.6}
+
+/* ── CARDS ── */
+.card{background:#fff;border:1px solid rgba(26,20,16,.1);border-radius:6px;padding:1.4rem;margin-bottom:1.1rem;position:relative;transition:box-shadow .2s}
+.card:hover{box-shadow:0 4px 18px var(--shadow)}
+.card-head{display:flex;align-items:center;gap:.7rem;margin-bottom:1.1rem}
+.tag{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:.28rem .65rem;border-radius:2px;font-weight:500}
+.tag-s{background:rgba(139,74,47,.12);color:var(--terra)}
+.tag-p{background:rgba(74,110,90,.12);color:var(--sage)}
+.tag-g{background:rgba(168,120,10,.12);color:var(--gold)}
+.tag-b{background:rgba(26,20,16,.07);color:rgba(26,20,16,.55)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.9rem}
+@media(max-width:580px){.grid2,.grid3{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:.28rem}
+.field label{font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;color:rgba(26,20,16,.4);font-weight:500}
+.field input,.field select,.field textarea{padding:.5rem .7rem;border:1px solid rgba(26,20,16,.16);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:.9rem;background:var(--parch);color:var(--ink);outline:none;transition:border-color .2s,background .2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--terra);background:#fff}
+.field input::placeholder,.field textarea::placeholder{color:rgba(26,20,16,.28)}
+.field textarea{resize:vertical;min-height:60px}
+.grid-full{grid-column:1/-1}
+.del-btn{position:absolute;top:.9rem;right:.9rem;width:24px;height:24px;border-radius:50%;border:1px solid rgba(26,20,16,.14);background:transparent;color:rgba(26,20,16,.3);cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.del-btn:hover{border-color:var(--red);color:var(--red);background:rgba(163,45,45,.06)}
+
+/* ── ADD BUTTON ── */
+.add-btn{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:.7rem;background:transparent;border:1.5px dashed rgba(26,20,16,.18);border-radius:6px;color:rgba(26,20,16,.4);font-family:'DM Sans',sans-serif;font-size:.83rem;cursor:pointer;margin-bottom:1.8rem;transition:all .2s}
+.add-btn:hover{border-color:var(--terra);color:var(--terra);background:rgba(139,74,47,.04)}
+
+/* ── BUTTONS ── */
+.btn-row{display:flex;align-items:center;justify-content:flex-end;gap:.8rem;margin-top:1.8rem}
+.btn-primary{padding:.8rem 2.2rem;background:var(--terra);color:#fff;border:none;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;letter-spacing:.04em;cursor:pointer;transition:background .2s,transform .1s}
+.btn-primary:hover{background:#7a3d24}
+.btn-primary:active{transform:scale(.98)}
+.btn-sec{padding:.8rem 1.8rem;background:transparent;color:var(--ink);border:1px solid rgba(26,20,16,.2);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:.88rem;cursor:pointer;transition:all .2s}
+.btn-sec:hover{border-color:var(--terra);color:var(--terra)}
+
+/* ── RESULTS ── */
+.results-hd{text-align:center;padding:1.5rem 0 2.2rem;border-bottom:1px solid rgba(26,20,16,.1);margin-bottom:2.2rem}
+.results-hd h2{font-family:'Cormorant Garamond',serif;font-size:1.9rem;font-weight:300}
+.results-hd p{color:rgba(26,20,16,.45);font-size:.82rem;margin-top:.4rem}
+
+.rlabel{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(26,20,16,.32);font-weight:500;margin:2.2rem 0 1rem;display:flex;align-items:center;gap:.7rem}
+.rlabel::after{content:'';flex:1;height:1px;background:rgba(26,20,16,.1)}
+
+/* finding card */
+.finding{border-left:3px solid var(--terra);background:#fff;border-radius:0 6px 6px 0;padding:1.4rem 1.6rem;margin-bottom:1.3rem;box-shadow:0 2px 10px var(--shadow);animation:fadeIn .4s ease both}
+.finding.l-alto{border-left-color:var(--red)}
+.finding.l-medio{border-left-color:var(--gold)}
+.finding.l-info{border-left-color:var(--sage)}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+
+.finding-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.7rem}
+.finding-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:600;line-height:1.3}
+.badge{font-size:.67rem;letter-spacing:.08em;text-transform:uppercase;padding:.28rem .65rem;border-radius:2px;white-space:nowrap;flex-shrink:0;font-weight:500}
+.b-alto{background:rgba(163,45,45,.1);color:var(--red)}
+.b-medio{background:rgba(168,120,10,.1);color:var(--gold)}
+.b-info{background:rgba(74,110,90,.1);color:var(--sage)}
+
+.finding-body{font-size:.88rem;color:rgba(26,20,16,.72);line-height:1.8}
+.finding-body strong{color:var(--ink);font-weight:500}
+
+/* pregunta sistémica */
+.q-box{margin-top:.9rem;padding:.8rem 1rem;background:var(--parch2);border-radius:4px;font-style:italic;font-family:'Cormorant Garamond',serif;font-size:.98rem;color:var(--terra);line-height:1.6}
+
+/* ejercicios */
+.ex-toggle{margin-top:1rem;padding:.55rem 1rem;background:transparent;border:1px solid rgba(139,74,47,.3);border-radius:4px;color:var(--terra);font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:.5rem}
+.ex-toggle:hover{background:rgba(139,74,47,.06)}
+.ex-toggle .arrow{transition:transform .25s}
+.ex-toggle.open .arrow{transform:rotate(90deg)}
+
+.ex-box{display:none;margin-top:.9rem;border:1px solid rgba(139,74,47,.18);border-radius:4px;overflow:hidden}
+.ex-box.open{display:block}
+.ex-tabs{display:flex;border-bottom:1px solid rgba(139,74,47,.15)}
+.ex-tab{flex:1;padding:.55rem;text-align:center;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;background:var(--parch2);color:rgba(26,20,16,.45);border-right:1px solid rgba(139,74,47,.15);transition:all .2s}
+.ex-tab:last-child{border-right:none}
+.ex-tab.active{background:#fff;color:var(--terra);font-weight:500}
+.ex-content{display:none;padding:1.2rem 1.4rem}
+.ex-content.active{display:block}
+.ex-content h4{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:600;margin-bottom:.6rem;color:var(--ink)}
+.ex-content p{font-size:.86rem;line-height:1.8;color:rgba(26,20,16,.7);margin-bottom:.7rem}
+.ex-content p:last-child{margin-bottom:0}
+.ex-content ol,.ex-content ul{font-size:.86rem;line-height:1.8;color:rgba(26,20,16,.7);padding-left:1.3rem;margin-bottom:.7rem}
+.ex-content ol li,.ex-content ul li{margin-bottom:.35rem}
+.ex-content .frase{background:var(--parch2);border-left:2px solid var(--terra);padding:.7rem .9rem;border-radius:0 4px 4px 0;font-style:italic;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--ink);margin:.5rem 0;line-height:1.6}
+.ex-content .tip{background:rgba(74,110,90,.07);border-radius:4px;padding:.6rem .8rem;font-size:.8rem;color:var(--sage);margin-top:.6rem}
+
+/* summary */
+.summary{background:var(--ink);color:var(--parch);border-radius:6px;padding:1.8rem;margin-top:2.5rem}
+.summary h3{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;margin-bottom:.9rem;opacity:.9}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin:1.2rem 0}
+.stat-n{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:300;color:var(--terra-l);line-height:1}
+.stat-l{font-size:.7rem;opacity:.45;margin-top:.25rem;letter-spacing:.05em;text-transform:uppercase}
+.summary p{font-size:.84rem;opacity:.55;line-height:1.8}
+.btn-ghost{display:inline-block;margin-top:1.2rem;padding:.6rem 1.3rem;background:transparent;border:1px solid rgba(255,255,255,.18);border-radius:4px;color:rgba(255,255,255,.6);font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer;transition:all .2s;margin-right:.6rem}
+.btn-ghost:hover{border-color:rgba(255,255,255,.45);color:#fff}
+
+.no-results{text-align:center;padding:3rem;color:rgba(26,20,16,.35);font-style:italic;font-family:'Cormorant Garamond',serif;font-size:1.1rem}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Árbol <em>Sistémico</em></h1>
+  <p>Análisis psicogenealógico · Ejercicios de sanación</p>
+  <div class="header-rule"></div>
+</header>
+
+<div class="wrap">
+
+  <!-- STEPS -->
+  <div class="steps" id="stepBar">
+    <div class="step active" onclick="goTo(1)">1 · Tú</div>
+    <div class="step" onclick="goTo(2)">2 · Padres</div>
+    <div class="step" onclick="goTo(3)">3 · Abuelos</div>
+    <div class="step" onclick="goTo(4)">4 · Bisabuelos</div>
+    <div class="step" onclick="">5 · Análisis</div>
+  </div>
+
+  <!-- SEC 1 -->
+  <div class="sec active" id="sec1">
+    <div class="sec-title">Tus datos</div>
+    <div class="sec-sub">Empezamos por ti, el consultante del árbol.</div>
+    <div class="note">Introduce los datos que tengas. Los campos vacíos no bloquean el análisis — el sistema trabaja con lo disponible. Cuantas más fechas incluyas, más preciso será el cruce.</div>
+    <div class="card">
+      <div class="card-head"><span class="tag tag-s">Consultante</span></div>
+      <div class="grid3">
+        <div class="field"><label>Nombre completo</label><input type="text" id="self-name" placeholder="Tu nombre"></div>
+        <div class="field"><label>Fecha de nacimiento</label><input type="date" id="self-dob"></div>
+        <div class="field"><label>Lugar de nacimiento</label><input type="text" id="self-pob" placeholder="Ciudad, país"></div>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn-primary" onclick="goTo(2)">Continuar →</button></div>
+  </div>
+
+  <!-- SEC 2 -->
+  <div class="sec" id="sec2">
+    <div class="sec-title">Padres</div>
+    <div class="sec-sub">Madre y padre — introduce lo que conozcas.</div>
+    <div id="parents-wrap"></div>
+    <div class="btn-row">
+      <button class="btn-sec" onclick="goTo(1)">← Atrás</button>
+      <button class="btn-primary" onclick="goTo(3)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- SEC 3 -->
+  <div class="sec" id="sec3">
+    <div class="sec-title">Abuelos</div>
+    <div class="sec-sub">Tus cuatro abuelos — introduce los datos disponibles.</div>
+    <div id="grands-wrap"></div>
+    <div class="btn-row">
+      <button class="btn-sec" onclick="goTo(2)">← Atrás</button>
+      <button class="btn-primary" onclick="goTo(4)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- SEC 4 -->
+  <div class="sec" id="sec4">
+    <div class="sec-title">Bisabuelos</div>
+    <div class="sec-sub">Introduce los que conozcas. Puedes añadir más con el botón inferior.</div>
+    <div id="bgrands-wrap"></div>
+    <button class="add-btn" onclick="addExtra()">+ Añadir bisabuelo/a u otro ancestro conocido</button>
+    <div class="btn-row">
+      <button class="btn-sec" onclick="goTo(3)">← Atrás</button>
+      <button class="btn-primary" onclick="analyze()">Analizar árbol →</button>
+    </div>
+  </div>
+
+  <!-- SEC 5 RESULTS -->
+  <div class="sec" id="sec5">
+    <div class="results-hd">
+      <h2>Análisis sistémico</h2>
+      <p id="res-sub">Resultados basados en los datos introducidos</p>
+    </div>
+    <div id="res-body"></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ─── SCHEMA ────────────────────────────────────────────────────────────────────
+const PEOPLE = {
+  self:    {label:'Tú (consultante)',        tag:'tag-s', rel:'self'},
+  mother:  {label:'Madre',                   tag:'tag-p', rel:'parent'},
+  father:  {label:'Padre',                   tag:'tag-p', rel:'parent'},
+  gm_m:   {label:'Abuela materna',           tag:'tag-g', rel:'grand'},
+  gf_m:   {label:'Abuelo materno',           tag:'tag-g', rel:'grand'},
+  gm_p:   {label:'Abuela paterna',           tag:'tag-g', rel:'grand'},
+  gf_p:   {label:'Abuelo paterno',           tag:'tag-g', rel:'grand'},
+  bgm_mm: {label:'Bisabuela materna (madre de tu abuela materna)', tag:'tag-b', rel:'bg'},
+  bgf_mm: {label:'Bisabuelo materno (padre de tu abuela materna)', tag:'tag-b', rel:'bg'},
+  bgm_mf: {label:'Bisabuela materna (madre de tu abuelo materno)', tag:'tag-b', rel:'bg'},
+  bgf_mf: {label:'Bisabuelo materno (padre de tu abuelo materno)', tag:'tag-b', rel:'bg'},
+  bgm_pm: {label:'Bisabuela paterna (madre de tu abuela paterna)', tag:'tag-b', rel:'bg'},
+  bgf_pm: {label:'Bisabuelo paterno (padre de tu abuela paterna)', tag:'tag-b', rel:'bg'},
+  bgm_pf: {label:'Bisabuela paterna (madre de tu abuelo paterno)', tag:'tag-b', rel:'bg'},
+  bgf_pf: {label:'Bisabuelo paterno (padre de tu abuelo paterno)', tag:'tag-b', rel:'bg'},
+};
+
+let extras = [], extraN = 0;
+
+function buildCard(pid, meta) {
+  const isSelf = pid === 'self';
+  const grid = isSelf ? 'grid3' : 'grid2';
+  return `<div class="card" id="card-${pid}">
+    <div class="card-head"><span class="tag ${meta.tag}">${meta.label}</span></div>
+    <div class="${grid}">
+      <div class="field"><label>Nombre completo</label><input type="text" id="${pid}-name" placeholder="Nombre y apellidos"></div>
+      <div class="field"><label>Fecha de nacimiento</label><input type="date" id="${pid}-dob"></div>
+      ${!isSelf ? `<div class="field"><label>Fecha de fallecimiento</label><input type="date" id="${pid}-dod"></div>` : ''}
+      <div class="field"><label>Lugar de nacimiento</label><input type="text" id="${pid}-pob" placeholder="Ciudad, país"></div>
+      <div class="field grid-full"><label>Eventos / notas sistémicas</label><textarea id="${pid}-notes" placeholder="Suicidio, accidente, secreto familiar, enfermedad, emigración, oficio, nombre heredado..."></textarea></div>
+    </div>
+  </div>`;
+}
+
+function renderGroup(wrapId, ids) {
+  document.getElementById(wrapId).innerHTML = ids.map(id => buildCard(id, PEOPLE[id])).join('');
+}
+
+renderGroup('parents-wrap', ['mother','father']);
+renderGroup('grands-wrap', ['gm_m','gf_m','gm_p','gf_p']);
+renderGroup('bgrands-wrap', ['bgm_mm','bgf_mm','bgm_mf','bgf_mf','bgm_pm','bgf_pm','bgm_pf','bgf_pf']);
+
+function addExtra() {
+  extraN++;
+  const pid = 'ex_' + extraN;
+  extras.push(pid);
+  PEOPLE[pid] = {label:'Ancestro adicional', tag:'tag-b', rel:'bg'};
+  const wrap = document.getElementById('bgrands-wrap');
+  const div = document.createElement('div');
+  div.innerHTML = buildCard(pid, PEOPLE[pid]);
+  const card = div.firstElementChild;
+  const btn = document.createElement('button');
+  btn.className='del-btn'; btn.innerHTML='×';
+  btn.onclick=()=>{ card.remove(); extras=extras.filter(x=>x!==pid); };
+  card.appendChild(btn);
+  wrap.appendChild(card);
+}
+
+// ─── NAV ───────────────────────────────────────────────────────────────────────
+let cur = 1;
+function goTo(n) {
+  document.getElementById('sec'+cur).classList.remove('active');
+  document.querySelectorAll('.step').forEach((el,i)=>{
+    el.classList.remove('active','done');
+    if(i+1<n) el.classList.add('done');
+    if(i+1===n) el.classList.add('active');
+  });
+  cur=n;
+  document.getElementById('sec'+n).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ─── DATA ──────────────────────────────────────────────────────────────────────
+function getP(pid) {
+  const g = id => { const el=document.getElementById(id); return el?el.value.trim():''; };
+  return {
+    id: pid,
+    label: PEOPLE[pid]?PEOPLE[pid].label:pid,
+    name:  g(pid+'-name')||g('self-name')||'',
+    dob:   g(pid+'-dob')||g('self-dob')||'',
+    dod:   g(pid+'-dod')||'',
+    pob:   g(pid+'-pob')||g('self-pob')||'',
+    notes: g(pid+'-notes')||'',
+    rel:   PEOPLE[pid]?PEOPLE[pid].rel:'bg',
+  };
+}
+function allP() {
+  const ids=['self','mother','father','gm_m','gf_m','gm_p','gf_p',
+    'bgm_mm','bgf_mm','bgm_mf','bgf_mf','bgm_pm','bgf_pm','bgm_pf','bgf_pf',...extras];
+  return ids.map(getP).filter(p=>p.name||p.dob||p.notes);
+}
+
+// ─── DATES ─────────────────────────────────────────────────────────────────────
+function parse(s){if(!s)return null;const d=new Date(s);if(isNaN(d))return null;return{y:d.getUTCFullYear(),m:d.getUTCMonth()+1,d:d.getUTCDate()};}
+function doy(m,d){return m*100+d;}
+function near(a,b,margin){if(!a||!b)return false;const da=doy(a.m,a.d),db=doy(b.m,b.d);const diff=Math.abs(da-db);return diff<=margin||(366-diff)<=margin;}
+function conception(dob){if(!dob)return null;let m=dob.m-9,y=dob.y;if(m<=0){m+=12;y--;}return{m,d:dob.d,y};}
+function age(dob,dod){if(!dob||!dod)return null;return dod.y-dob.y;}
+function mon(m){return['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][m-1]||m;}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+// ─── EXERCISES LIBRARY ─────────────────────────────────────────────────────────
+const EX = {
+
+  nombre: {
+    tabs:['Reflexión','Dinámica','Psicomagia'],
+    contents:[
+      `<h4>Ejercicio: Los nombres del árbol</h4>
+       <p>Toma una copia de tu árbol con nombres y fechas. Busca similitudes entre personas de distintas generaciones — nombres idénticos, variantes, nombres que comparten raíz o significado.</p>
+       <p>Cuando encuentres una coincidencia, márcala con un color. Luego anota en un cuaderno:</p>
+       <ol><li>¿Qué tienen en común las vidas de estas personas?</li><li>¿Comparten profesión, estado civil, tragedias o logros?</li><li>¿Se habla de la persona original en la familia, o es un tema silenciado?</li></ol>
+       <p class="tip">El nombre heredado no es casual — según Schützenberger, suele ir acompañado de una misión familiar inconsciente.</p>`,
+
+      `<h4>Carta al ancestro con tu nombre</h4>
+       <p>Escribe una carta a la persona cuyo nombre heredaste. Empieza así:</p>
+       <div class="frase">"[Nombre], te veo. Sé que existes y que formas parte de mi historia. Yo llevo tu nombre, pero mi vida es la mía."</div>
+       <p>Continúa escribiendo libremente: qué sabes de esa persona, qué sientes al nombrarte igual que ella, qué quieres llevarte de su historia y qué quieres dejar atrás.</p>
+       <p>Al terminar, lee la carta en voz alta. Cierra con la frase: <em>"Tomo lo que es tuyo con gratitud y dejo en paz lo que es tuyo. Yo vivo mi propia vida."</em></p>`,
+
+      `<h4>Ritual de diferenciación del nombre</h4>
+       <p>Escribe en un papel tu nombre completo y debajo el de la persona ancestral. Pon los papeles uno frente al otro en el suelo, separados un metro.</p>
+       <p>Colócate sobre tu propio nombre. Mira al papel del ancestro y di en voz alta:</p>
+       <div class="frase">"Compartimos un nombre, pero somos personas distintas. Honro tu vida. Yo vivo la mía."</div>
+       <p>Luego da media vuelta, alejándote del papel del ancestro. Camina unos pasos hacia delante y repite: <em>"Este es mi camino. Es mío."</em></p>
+       <p class="tip">Basado en las dinámicas de Octavio Déniz (Cómo sanar tu árbol genealógico, 2016).</p>`
+    ]
+  },
+
+  doblenac: {
+    tabs:['Reflexión','Dinámica'],
+    contents:[
+      `<h4>Rastreando las vidas paralelas</h4>
+       <p>Schützenberger señala que los dobles no solo comparten fechas — también tienden a vivir vidas paralelas. Anota en un cuaderno:</p>
+       <ol><li>¿Qué sabes de la vida de la otra persona? Oficio, relaciones, tragedias, logros.</li><li>¿Hay algún patrón que se repita en tu propia vida?</li><li>¿Existe alguna situación que "se parece demasiado" a la de ese ancestro?</li></ol>
+       <p>No hace falta responder todo ahora. Deja espacio para que las ideas surjan en los días siguientes.</p>`,
+
+      `<h4>Dinámica de diferenciación sistémica</h4>
+       <p>Necesitas dos folios con los nombres de cada persona escritos en grande. Colócalos en el suelo frente a frente, a un metro de distancia.</p>
+       <p>Sitúate sobre tu propio papel. Observa el papel de la otra persona. Nota qué sientes en el cuerpo, sin juzgar. Luego di:</p>
+       <div class="frase">"Eres [nombre]. Yo soy [tu nombre]. Tu vida fue tuya. La mía es mía. Te veo con respeto."</div>
+       <p>Inclínate ligeramente hacia el papel del ancestro (gesto de reconocimiento). Luego da media vuelta y mira al frente.</p>
+       <p class="tip">Basado en la dinámica "Dar voz al excluido" de Octavio Déniz.</p>`
+    ]
+  },
+
+  heredero: {
+    tabs:['Reflexión','Dinámica','Psicomagia'],
+    contents:[
+      `<h4>¿Qué heredaste de verdad?</h4>
+       <p>El heredero universal nace en la fecha exacta de muerte de un ancestro. Según la psicogenealogía, hereda inconscientemente su proyecto de vida, sus patrones, sus dramas. Explora en un cuaderno:</p>
+       <ol><li>¿Qué sabes de la vida del ancestro? Su oficio, sus relaciones, sus miedos, sus logros.</li><li>¿Qué partes de su historia reconoces en la tuya?</li><li>¿Hay algo en ti — una tendencia, un sueño, un miedo — que no terminas de entender y que podría venir de ahí?</li></ol>`,
+
+      `<h4>Recibir la herencia con consciencia</h4>
+       <p>Coloca en el suelo un papel con el nombre del ancestro. Sitúate frente a él, de pie, con los brazos sueltos y los ojos abiertos. Observa un momento en silencio. Luego di:</p>
+       <div class="frase">"Naciste cuando tú moriste. Hay algo de tu vida que llegó a mí. Tomo lo que es bueno y liviano. Dejo en ti lo que es tuyo. Tu destino fue tuyo. El mío es mío."</div>
+       <p>Inclínate suavemente hacia el papel (gesto de reconocimiento y gratitud). Luego da media vuelta.</p>`,
+
+      `<h4>Carta de separación y gratitud</h4>
+       <p>Escribe una carta al ancestro. Cuéntale qué sabes de su vida. Dile qué crees haber heredado. Agradécele lo que consideras un regalo. Y luego, con respeto, devuélvele lo que no es tuyo:</p>
+       <div class="frase">"Gracias por todo lo que llegó a mí a través del tiempo. Tomo tu fuerza. Te devuelvo tus cargas. Yo vivo adelante."</div>
+       <p>Quema o entierra la carta si lo sientes apropiado — Schützenberger y Dolto describen este tipo de acto simbólico como un modo de cerrar el campo energético.</p>`
+    ]
+  },
+
+  concepcion: {
+    tabs:['Reflexión'],
+    contents:[
+      `<h4>La resonancia del origen</h4>
+       <p>Tu concepción coincide en fechas con el cumpleaños de un ancestro. Esto crea lo que Schützenberger llama un doble por concepción: el momento de tu inicio biológico resuena con el campo vital de esa persona.</p>
+       <p>Explora en un cuaderno:</p>
+       <ol><li>¿Qué sabes de esa persona? ¿Qué le importaba en la vida?</li><li>¿Hay algo en ti que recuerda a lo que sabes de ella?</li><li>¿Qué quieres honrar de su historia? ¿Qué prefieres que no continúe en ti?</li></ol>
+       <p class="tip">No es necesario que haya una conexión obvia. A veces la resonancia es sutil — un valor, una sensibilidad, una forma de ver el mundo.</p>`
+    ]
+  },
+
+  aniversario: {
+    tabs:['Reflexión','Acción simbólica'],
+    contents:[
+      `<h4>Rastreando el síndrome del aniversario</h4>
+       <p>Schützenberger demostró que el inconsciente recuerda fechas de muerte generacionalmente. Anota en un cuaderno alrededor de esa fecha:</p>
+       <ol><li>¿Ha ocurrido algo importante en tu vida alrededor de ese día o esa semana en distintos años?</li><li>¿Tus padres o abuelos vivos tienen algún recuerdo especial de esa fecha?</li><li>¿Hay algún patrón de accidentes, enfermedades, separaciones o decisiones importantes en esa época del año?</li></ol>
+       <p>Observar el patrón ya es en sí mismo un acto terapéutico.</p>`,
+
+      `<h4>Honrar la fecha</h4>
+       <p>El día del aniversario, o cerca de él, realiza un pequeño acto de reconocimiento al ancestro fallecido. Puede ser:</p>
+       <ul><li>Encender una vela y decir su nombre en voz alta.</li><li>Colocar una flor en un lugar significativo.</li><li>Escribir unas líneas en un cuaderno sobre lo que sabes de su vida.</li></ul>
+       <div class="frase">"[Nombre], te recuerdo en este día. Tu vida tuvo valor. Tú perteneces a nuestra familia. Yo te honro y sigo adelante."</div>
+       <p class="tip">Este acto simbólico "cierra" el campo del aniversario, según Schützenberger. Lo que fue reconocido deja de necesitar ser repetido.</p>`
+    ]
+  },
+
+  suicidio: {
+    tabs:['Reflexión','Dinámica','Frase sanadora'],
+    contents:[
+      `<h4>El gran excluido del árbol</h4>
+       <p>El ancestro que se quitó la vida es, sistémicamente, el elemento con mayor carga en el árbol. Suele ser silenciado, lo que hace que el campo siga activo. Hellinger señala que "los excluidos buscan representación en los descendientes".</p>
+       <p>Anota en un cuaderno:</p>
+       <ol><li>¿Qué sabes de esta persona? ¿Se habla de ella en la familia o es un tema prohibido?</li><li>¿Conoces su nombre? Si no, ¿puedes investigarlo?</li><li>¿Hay en tu vida o en la de tus padres tendencias que podrían relacionarse con esa historia?</li></ol>
+       <p>El primer paso es nombrar. Dar nombre es dar lugar.</p>`,
+
+      `<h4>Dar lugar al excluido</h4>
+       <p>Coloca en el suelo un papel con el nombre del ancestro (o con las palabras "bisabuelo/a desconocido/a" si no lo tienes). Sitúate frente a él con respeto.</p>
+       <p>Observa en silencio. Nota lo que sientes en el cuerpo. Luego di, despacio:</p>
+       <div class="frase">"Te veo. Eres parte de esta familia. Tenías tu lugar aquí. Lo que viviste fue tuyo. Lo respeto, aunque no lo entienda."</div>
+       <p>Inclínate ligeramente. Permanece un momento. Luego da media vuelta mirando al frente.</p>`,
+
+      `<h4>Frases de reconocimiento — Hellinger</h4>
+       <p>Estas frases, inspiradas en el trabajo de Bert Hellinger, pueden decirse en voz alta, en silencio o escribirse en un papel:</p>
+       <div class="frase">"Llevas mi sangre. Perteneces a este árbol. Te doy tu lugar, con respeto."</div>
+       <div class="frase">"Lo que viviste fue tuyo y fue pesado. Yo lo veo con respeto. No tengo que repetirlo."</div>
+       <div class="frase">"Eres parte de mis raíces. Desde ahí me nutres, aunque tu historia haya sido difícil."</div>
+       <p class="tip">No se trata de aprobar lo que ocurrió. Se trata de dar lugar sistémico a lo que existió. El reconocimiento libera el campo.</p>`
+    ]
+  },
+
+  secreto: {
+    tabs:['Reflexión','Acción'],
+    contents:[
+      `<h4>Descubriendo el secreto familiar</h4>
+       <p>Schützenberger: "Mientras el secreto siga siendo secreto, la historia familiar se repite." Para rastrear un secreto que intuyes pero no conoces:</p>
+       <ol><li>Observa qué temas se evitan sistemáticamente en la familia.</li><li>Detecta "lagunas" en el árbol: personas de las que nadie habla, fechas que no se conocen.</li><li>Trabaja hacia atrás: si hay un efecto (un patrón que se repite), intenta imaginar qué causa podría haberlo generado.</li></ol>
+       <p>El ejercicio no requiere que llegues al secreto. Simplemente acercarte con curiosidad y sin juicio ya mueve algo.</p>`,
+
+      `<h4>Estrategias para revelar un secreto — Octavio Déniz</h4>
+       <p>Si hay un secreto familiar que quieres revelar a alguien:</p>
+       <ul><li><strong>Carta:</strong> Mucho más llevadero que una conversación directa. La persona lectora tiene tiempo para procesar sin sentirse en la obligación de responder de inmediato.</li><li><strong>Cuento:</strong> Si hay menores involucrados, un relato puede vehicular verdades que de otro modo serían difíciles de transmitir.</li><li><strong>Escrito póstumo:</strong> Si no puedes revelarlo en vida, dejarlo escrito para que sea leído después. La transmisión ocurre igualmente.</li></ul>
+       <p class="tip">Lo más importante es asegurarse de que quien recibe el secreto esté preparado para ello.</p>`
+    ]
+  },
+
+  excluido: {
+    tabs:['Reflexión','Dinámica'],
+    contents:[
+      `<h4>¿Quién fue excluido del árbol?</h4>
+       <p>Hellinger enseña que todo el que perteneció al sistema tiene derecho a su lugar. Cuando alguien es excluido u olvidado, el campo busca un representante entre los descendientes.</p>
+       <p>Explora en un cuaderno:</p>
+       <ol><li>¿Hay personas en tu árbol de las que nadie habla? ¿Un tío, una hermana del abuelo, un hijo perdido?</li><li>¿Hay alguien que fue considerado "la oveja negra" y cuya historia quedó borrada?</li><li>¿Hay en ti alguna tendencia que no entiendes del todo y que podría ser una representación de ese excluido?</li></ol>`,
+
+      `<h4>Dar voz al excluido — Déniz</h4>
+       <p>Escribe el nombre del excluido en un papel y colócalo en el suelo frente a ti. Sitúate sobre un papel con tu propio nombre. Observa en silencio.</p>
+       <p>Cuando estés listo, inclínate hacia el papel del excluido y di:</p>
+       <div class="frase">"Eres parte de esta familia. Tienes tu lugar aquí. Te veo. Te doy un lugar en mi corazón."</div>
+       <p>Permanece en silencio un momento. Observa lo que sientes. Luego da media vuelta — el excluido ya tiene su lugar y puede "soltar" al descendiente que lo representaba.</p>
+       <p class="tip">Este ejercicio puede hacerse con tantos excluidos como desees, dejando varios días entre uno y otro para integrar la experiencia.</p>`
+    ]
+  },
+
+  emigracion: {
+    tabs:['Reflexión','Psicomagia'],
+    contents:[
+      `<h4>El dolor del desarraigo</h4>
+       <p>La emigración deja una fractura sistémica: el lugar de origen queda "atrás" pero sigue activo en el campo familiar. A veces los descendientes sienten sin saber por qué una nostalgia sin objeto, una sensación de no pertenecer del todo a ningún sitio.</p>
+       <p>Explora en un cuaderno:</p>
+       <ol><li>¿Qué circunstancias llevaron a ese ancestro a emigrar? ¿Fue elegida la emigración o fue forzada?</li><li>¿Hubo pérdida de identidad cultural, de lengua, de costumbres?</li><li>¿Sientes en ti alguna resonancia de ese desarraigo?</li></ol>`,
+
+      `<h4>Honrar el origen — Déniz</h4>
+       <p>Investiga el lugar de origen del emigrante en tu árbol. Busca fotos, mapas, descripciones. Acércate a ese lugar aunque sea simbólicamente.</p>
+       <p>Escribe en un papel el nombre del ancestro y el lugar que dejó. Di en voz alta:</p>
+       <div class="frase">"Partiste de [lugar] y esa tierra sigue siendo parte de nuestras raíces. La honro. Tú no perdiste tu origen — yo lo llevo."</div>
+       <p>Si es posible, visita ese lugar o busca algo que lo represente — una foto, una flor de allá, una canción. Colócalo en un espacio visible durante unos días.</p>`
+    ]
+  },
+
+  fracaso: {
+    tabs:['Reflexión','Dinámica'],
+    contents:[
+      `<h4>La lealtad inconsciente al fracaso</h4>
+       <p>Cuando un ancestro sufrió ruina económica, fracaso laboral o pobreza extrema, los descendientes a veces reproducen ese patrón por lealtad inconsciente al clan. Octavio Déniz lo llama "la maldición del fracaso".</p>
+       <p>Anota en un cuaderno:</p>
+       <ol><li>¿Hubo en tu árbol episodios de ruina, quiebra o fracaso profesional?</li><li>¿Reconoces en tu vida algún patrón de autosabotaje justo cuando estás a punto de prosperar?</li><li>¿Sientes que "no está bien" tener más que tus padres o abuelos?</li></ol>`,
+
+      `<h4>Romper la maldición de fracaso — Déniz</h4>
+       <p>Coloca en el suelo un papel con el nombre del ancestro que sufrió el fracaso. Sitúate frente a él, de pie, con los ojos abiertos y los brazos sueltos. Observa en silencio un momento. Luego di en voz alta:</p>
+       <div class="frase">"Hasta ahora te he estado siguiendo. Pero ya no lo haré más. Te devuelvo tu destino y ahora tomo el mío en mis manos. Te doy las gracias por todo lo que he aprendido de ti."</div>
+       <p>Si sientes dolor, añade: "Lo siento." Luego da media vuelta y mira al frente. Si puedes, sal y da un paseo por un lugar hermoso. Algo se está liberando.</p>`
+    ]
+  },
+
+  reescribir: {
+    tabs:['Ejercicio creativo'],
+    contents:[
+      `<h4>Reescribir la historia familiar — Jodorowsky / Déniz</h4>
+       <p>Inspirado en el método de Alejandro Jodorowsky: nada nos impide construir una historia paralela que tenga un impacto sanador en el alma.</p>
+       <p>Elige un ancestro con un destino especialmente difícil. Escribe en un papel:</p>
+       <ol><li>Qué sabes de su vida real — con respeto y sin juicio.</li><li>Qué debería haber pasado para que ese destino fuera más liviano.</li><li>Cómo habría sido su vida si hubiera tenido lo que necesitaba.</li></ol>
+       <p>Permite que tu imaginación vuele. No hay límites en este ejercicio — es un cuento que estás creando ahora, con intención sanadora.</p>
+       <div class="frase">"Si el tiempo carece de valor en el inconsciente generacional, ¿por qué no intentar modificar también el pasado?" — Octavio Déniz</div>
+       <p class="tip">Este ejercicio tiene un efecto real sobre el campo interno. Al imaginar un destino diferente para un ancestro, se aflojan las lealtades inconscientes que nos ataban a su historia.</p>`
+    ]
+  },
+
+  generico: {
+    tabs:['Reflexión','Dinámica'],
+    contents:[
+      `<h4>Observar el patrón</h4>
+       <p>El primer acto terapéutico es siempre reconocer lo que existe. Schützenberger lo llama "ver el árbol" — simplemente mirar sin juzgar ya produce cambios en el campo.</p>
+       <p>Anota en un cuaderno lo que sabes de este elemento del árbol. Sin interpretar todavía, simplemente observa y registra.</p>`,
+
+      `<h4>Dar lugar y reconocimiento</h4>
+       <p>Coloca un papel con el nombre de la persona o el evento en el suelo. Sitúate frente a él en silencio. Observa lo que sientes. Luego di:</p>
+       <div class="frase">"Esto existió. Forma parte de mi historia. Lo veo con respeto."</div>
+       <p>Da un momento de silencio. Luego da media vuelta y mira al frente.</p>`
+    ]
+  }
+};
+
+function getEx(type) {
+  return EX[type] || EX.generico;
+}
+
+// ─── ANALYSIS ──────────────────────────────────────────────────────────────────
+function analyze() {
+  goTo(5);
+  const data = allP();
+  const self = data.find(p=>p.id==='self');
+  const selfDob = parse(self ? self.dob : '');
+  const findings = [];
+
+  // 1 — Dobles por nombre
+  const nameMap = {};
+  data.forEach(p=>{
+    const first = p.name.split(' ')[0].toLowerCase();
+    if(first.length<3) return;
+    if(!nameMap[first]) nameMap[first]=[];
+    nameMap[first].push(p);
+  });
+  Object.entries(nameMap).forEach(([n,group])=>{
+    if(group.length>=2) {
+      findings.push({level:'alto', badge:'Doble por nombre', exType:'nombre',
+        title:`Nombre repetido: "${cap(n)}"`,
+        body:`El nombre <strong>${cap(n)}</strong> aparece en ${group.length} personas del árbol: ${group.map(p=>`<em>${p.label}</em>`).join(', ')}. Según Schützenberger, quien hereda el nombre de un ancestro porta inconscientemente su misión, sus patrones y su destino. Es uno de los marcadores sistémicos más claros.`,
+        q:`¿Qué vivió la persona original que se llama así? ¿Se habla de ella en la familia?`
+      });
+    }
+  });
+
+  // 2 — Dobles por nacimiento
+  for(let i=0;i<data.length;i++) for(let j=i+1;j<data.length;j++){
+    const a=parse(data[i].dob), b=parse(data[j].dob);
+    if(!a||!b) continue;
+    if(near(a,b,0)) findings.push({level:'alto',badge:'Doble perfecto',exType:'doblenac',
+      title:`Nacen el mismo día: ${data[i].label} y ${data[j].label}`,
+      body:`<strong>${data[i].name||data[i].label}</strong> (${data[i].dob}) y <strong>${data[j].name||data[j].label}</strong> (${data[j].dob}) comparten fecha exacta de nacimiento. Este es el doble más fuerte posible según la psicogenealogía.`,
+      q:`¿Qué tienen en común sus vidas? ¿Comparten patrones, profesión o circunstancias?`});
+    else if(near(a,b,10)) findings.push({level:'alto',badge:'Doble por nacimiento',exType:'doblenac',
+      title:`Nacen en fechas próximas: ${data[i].label} y ${data[j].label}`,
+      body:`<strong>${data[i].name||data[i].label}</strong> (${data[i].dob}) y <strong>${data[j].name||data[j].label}</strong> (${data[j].dob}) nacen con una diferencia de ≤10 días. En psicogenealogía esto indica resonancia sistémica: una persona porta inconscientemente la energía de la otra.`,
+      q:`¿Hay vidas paralelas entre estas dos personas? ¿Situaciones parecidas en distintas generaciones?`});
+  }
+
+  // 3 — Heredero universal / doble por defunción
+  const withDod = data.filter(p=>p.dod);
+  data.forEach(person=>{
+    const dob=parse(person.dob); if(!dob) return;
+    withDod.forEach(dec=>{
+      if(dec.id===person.id) return;
+      const dod=parse(dec.dod); if(!dod) return;
+      if(near(dob,dod,0)) findings.push({level:'alto',badge:'Heredero universal',exType:'heredero',
+        title:`${person.label} nace el día que muere ${dec.label}`,
+        body:`<strong>${person.name||person.label}</strong> (${person.dob}) nació el mismo día en que murió <strong>${dec.name||dec.label}</strong> (${dec.dod}). El heredero universal hereda inconscientemente el proyecto de vida, los patrones y los dramas del ancestro fallecido.`,
+        q:`¿Se parecen en algo sus vidas? ¿Comparten rasgos, circunstancias o tendencias?`});
+      else if(near(dob,dod,10)) findings.push({level:'medio',badge:'Doble por defunción',exType:'heredero',
+        title:`Nacimiento de ${person.label} próximo a la muerte de ${dec.label}`,
+        body:`<strong>${person.name||person.label}</strong> nació el ${person.dob} y <strong>${dec.name||dec.label}</strong> murió el ${dec.dod} — diferencia de ≤10 días. El recién nacido entra al sistema en el mismo campo energético del fallecido.`,
+        q:`¿Qué se sabe de la persona fallecida? ¿Su historia se habló o quedó en silencio?`});
+    });
+  });
+
+  // 4 — Doble por concepción
+  if(selfDob) {
+    const selfConc = conception(selfDob);
+    data.forEach(person=>{
+      if(person.id==='self') return;
+      const dob=parse(person.dob); if(!dob) return;
+      if(near(selfConc,dob,10)) findings.push({level:'medio',badge:'Doble por concepción',exType:'concepcion',
+        title:`Tu concepción coincide con el nacimiento de ${person.label}`,
+        body:`Tu fecha de concepción aproximada (mes ${selfConc.m}/${selfConc.y}) coincide en ≤10 días con el nacimiento de <strong>${person.name||person.label}</strong> (${person.dob}). El inicio de tu vida biológica resuena con el campo vital de ese ancestro.`,
+        q:`¿Qué te atrae o te resulta familiar de esa persona? ¿Hay valores o sensibilidades compartidos?`});
+    });
+  }
+
+  // 5 — Síndrome del aniversario
+  withDod.forEach(dec=>{
+    const dod=parse(dec.dod); if(!dod) return;
+    findings.push({level:'info',badge:'Fecha a observar',exType:'aniversario',
+      title:`Aniversario de fallecimiento: ${dec.label} (${dod.d} de ${mon(dod.m)})`,
+      body:`La muerte de <strong>${dec.name||dec.label}</strong> ocurrió el ${dec.dod}. Schützenberger demostró que el inconsciente recuerda estas fechas generacionalmente: accidentes, enfermedades o decisiones importantes tienden a ocurrir alrededor del mismo día año tras año.`,
+      q:`¿Ha ocurrido algo significativo en tu vida alrededor del ${dod.d} de ${mon(dod.m)} en distintos años?`});
+  });
+
+  // 6 — Palabras clave sistémicas en notas
+  const KW = [
+    {k:'suicid', badge:'Muerte por suicidio', level:'alto', exType:'suicidio',
+     msg:'El suicidio de un ancestro crea el campo sistémico más cargado del árbol. Hellinger señala que es el gran excluido: alguien que eligió salir del sistema. Mientras no se le dé nombre y lugar, el campo busca representación en los descendientes.'},
+    {k:'secret', badge:'Secreto familiar', level:'alto', exType:'secreto',
+     msg:'Schützenberger: "Mientras el secreto siga siendo secreto, la historia familiar se repite." El secreto silenciado transmite su carga de generación en generación hasta que alguien lo nombra.'},
+    {k:'adopci', badge:'Adopción', level:'medio', exType:'excluido',
+     msg:'Las adopciones crean vínculos y también posibles exclusiones sistémicas. El padre o madre biológico pertenece al sistema aunque no esté presente físicamente.'},
+    {k:'aborto', badge:'Pérdida gestacional', level:'medio', exType:'excluido',
+     msg:'Los hijos no nacidos pertenecen al sistema. Su no reconocimiento puede crear dinámicas en hermanos y descendientes. Hellinger: merecen su lugar.'},
+    {k:'emigr', badge:'Emigración / desarraigo', level:'info', exType:'emigracion',
+     msg:'Los movimientos migratorios importantes marcan el árbol: dejan una fractura de raíces que puede transmitirse como sensación de no pertenecer del todo a ningún sitio.'},
+    {k:'acciden', badge:'Accidente grave', level:'medio', exType:'aniversario',
+     msg:'Los accidentes graves, especialmente si fueron mortales, son eventos sistémicos que pueden repetirse como síndrome del aniversario en fechas y edades similares.'},
+    {k:'gitano|gitana|romani|rom ', badge:'Linaje específico', level:'info', exType:'excluido',
+     msg:'Los linajes con identidad cultural fuerte tienen sus propias leyes de lealtad y pertenencia. La pregunta sistémica clave es si ese linaje fue reconocido u ocultado en la familia.'},
+    {k:'desconoc', badge:'Ancestro sin datos', level:'medio', exType:'excluido',
+     msg:'Los ancestros sin nombre ni fechas son los excluidos invisibles del árbol. Lo que se oculta busca representación. Darles aunque sea un nombre provisional es el primer paso.'},
+    {k:'guerra|combat', badge:'Trauma de guerra', level:'medio', exType:'aniversario',
+     msg:'La participación en guerras deja traumas transgeneracionales que pueden transmitirse 3-4 generaciones. El trauma de combate y de supervivencia es sistémicamente muy activo.'},
+    {k:'alcohol|adicci', badge:'Adicción', level:'medio', exType:'generico',
+     msg:'Las adicciones en el árbol suelen ser síntomas de dolor transgeneracional no procesado. ¿A qué dolor servía esa adicción? ¿Qué silenciaba o aliviaba?'},
+    {k:'fracas|ruina|quiebra|bancarrota', badge:'Fracaso económico', level:'medio', exType:'fracaso',
+     msg:'Los patrones de ruina y fracaso económico pueden repetirse por lealtad inconsciente al clan. Déniz llama a esto "la maldición del fracaso" — se rompe reconociendo el origen y diferenciando el propio destino.'},
+    {k:'enfermed|cronic|cancer|cardio', badge:'Enfermedad generacional', level:'medio', exType:'generico',
+     msg:'Las enfermedades que se repiten en distintas generaciones del árbol pueden tener un componente transgeneracional. No siempre, pero merece ser explorado.'},
+  ];
+
+  data.forEach(person=>{
+    const text = (person.notes+' '+person.name).toLowerCase();
+    KW.forEach(kw=>{
+      const regex = new RegExp(kw.k);
+      if(!regex.test(text)) return;
+      const already = findings.some(f=>f.title.includes(person.label)&&f.badge===kw.badge);
+      if(!already) findings.push({level:kw.level, badge:kw.badge, exType:kw.exType,
+        title:`${kw.badge} — ${person.label}${person.name?': '+person.name:''}`,
+        body:kw.msg,
+        q:`¿Qué se sabe de esta persona y de este evento en la familia? ¿Se habla de ello o es un tema silenciado?`});
+    });
+  });
+
+  // 7 — Patrones de longevidad
+  const ages = data.filter(p=>p.dob&&p.dod).map(p=>({p,a:age(parse(p.dob),parse(p.dod))})).filter(x=>x.a!==null);
+  const young = ages.filter(x=>x.a<50);
+  const old = ages.filter(x=>x.a>=75);
+  if(young.length>=2) findings.push({level:'medio',badge:'Patrón generacional',exType:'reescribir',
+    title:'Patrón de muertes tempranas en el árbol',
+    body:`${young.length} personas fallecieron antes de los 50 años: ${young.map(x=>`<em>${x.p.name||x.p.label} (${x.a} años)</em>`).join(', ')}. Esto puede señalar un mandato inconsciente de "no vivir demasiado" o una lealtad ciega a un ancestro.`,
+    q:`¿Hay alguna causa común? ¿Se trata de una coincidencia histórica (guerra, epidemia) o de un patrón más profundo?`});
+  if(old.length>=2) findings.push({level:'info',badge:'Recurso sistémico',exType:'generico',
+    title:'Longevidad como recurso del árbol',
+    body:`${old.length} personas con larga vida: ${old.map(x=>`<em>${x.p.name||x.p.label} (${x.a} años)</em>`).join(', ')}. La longevidad es una fortaleza sistémica — raíces fuertes y recursos vitales que también se transmiten de generación en generación.`,
+    q:null});
+
+  renderResults(findings, data);
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────────
+let openEx = {};
+
+function toggleEx(id) {
+  openEx[id] = !openEx[id];
+  const box = document.getElementById('exbox-'+id);
+  const btn = document.getElementById('extoggle-'+id);
+  if(openEx[id]){ box.classList.add('open'); btn.classList.add('open'); btn.querySelector('.arrow').textContent='▶'; }
+  else { box.classList.remove('open'); btn.classList.remove('open'); btn.querySelector('.arrow').textContent='▶'; }
+}
+
+function switchTab(fid, ti) {
+  const box = document.getElementById('exbox-'+fid);
+  box.querySelectorAll('.ex-tab').forEach((t,i)=>{ t.classList.toggle('active',i===ti); });
+  box.querySelectorAll('.ex-content').forEach((c,i)=>{ c.classList.toggle('active',i===ti); });
+}
+
+function renderResults(findings, data) {
+  document.getElementById('res-sub').textContent = `${data.length} personas analizadas · ${findings.length} hallazgos`;
+  const c = document.getElementById('res-body');
+  if(data.length<=1){ c.innerHTML='<p class="no-results">Introduce datos de al menos una persona más para generar el análisis.</p>'; return; }
+
+  const altos=findings.filter(f=>f.level==='alto');
+  const medios=findings.filter(f=>f.level==='medio');
+  const infos=findings.filter(f=>f.level==='info');
+
+  let html = '';
+
+  function fhtml(f, idx) {
+    const bc = {alto:'b-alto',medio:'b-medio',info:'b-info'}[f.level]||'b-info';
+    const lc = {alto:'l-alto',medio:'l-medio',info:'l-info'}[f.level]||'l-info';
+    const ex = getEx(f.exType);
+    const fid = 'f'+idx;
+    const tabsHtml = ex.tabs.map((t,i)=>`<div class="ex-tab${i===0?' active':''}" onclick="switchTab('${fid}',${i})">${t}</div>`).join('');
+    const contentsHtml = ex.contents.map((c,i)=>`<div class="ex-content${i===0?' active':''}">${c}</div>`).join('');
+    return `<div class="finding ${lc}" style="animation-delay:${idx*70}ms">
+      <div class="finding-top">
+        <div class="finding-title">${f.title}</div>
+        <span class="badge ${bc}">${f.badge}</span>
+      </div>
+      <div class="finding-body">
+        ${f.body}
+        ${f.q?`<div class="q-box">Pregunta sistémica: ${f.q}</div>`:''}
+        <button class="ex-toggle" id="extoggle-${fid}" onclick="toggleEx('${fid}')">
+          <span class="arrow">▶</span> Ejercicios de sanación para este hallazgo
+        </button>
+        <div class="ex-box" id="exbox-${fid}">
+          <div class="ex-tabs">${tabsHtml}</div>
+          ${contentsHtml}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  let idx=0;
+  if(altos.length){ html+=`<div class="rlabel">Hallazgos de alta relevancia sistémica</div>`; altos.forEach(f=>{ html+=fhtml(f,idx++); }); }
+  if(medios.length){ html+=`<div class="rlabel">Elementos a observar y trabajar</div>`; medios.forEach(f=>{ html+=fhtml(f,idx++); }); }
+  if(infos.length){ html+=`<div class="rlabel">Recursos e información contextual</div>`; infos.forEach(f=>{ html+=fhtml(f,idx++); }); }
+  if(!findings.length) html='<p class="no-results">No se detectaron patrones con los datos introducidos. Añade más fechas o notas de eventos relevantes.</p>';
+
+  const na=altos.length, nm=medios.length+infos.length;
+  html+=`<div class="summary">
+    <h3>Resumen del análisis</h3>
+    <div class="stats">
+      <div><div class="stat-n">${data.length}</div><div class="stat-l">Personas analizadas</div></div>
+      <div><div class="stat-n">${findings.length}</div><div class="stat-l">Hallazgos totales</div></div>
+      <div><div class="stat-n">${na}</div><div class="stat-l">Alta relevancia</div></div>
+    </div>
+    <p>Análisis basado en los criterios de Anne Ancelin Schützenberger, Bert Hellinger y Octavio Déniz. Los ejercicios son herramientas de exploración personal — para un proceso de sanación profundo se recomienda trabajar con un profesional en constelaciones familiares.</p>
+    <button class="btn-ghost" onclick="window.print()">Imprimir / guardar PDF</button>
+    <button class="btn-ghost" onclick="goTo(1)">← Nuevo análisis</button>
+  </div>`;
+
+  c.innerHTML = html;
+}
+</script>
+</body>
+</html>
